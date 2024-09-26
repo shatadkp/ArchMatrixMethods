@@ -1,6 +1,7 @@
 import csv
 import datetime
 import re
+import sys
 from rdflib import Graph, Namespace, RDF, RDFS, OWL, XSD, URIRef, Literal
 import chardet
 from collections import defaultdict
@@ -31,38 +32,47 @@ individuals_graph.bind('xsd', XSD)
 # Helper Functions
 # -----------------------------
 
-def detect_encoding(file_path, num_bytes=10000):
+def detect_encoding_and_dialect(file_path, num_bytes=10000):
     """
-    Detects the encoding of a file using chardet.
-
-    :param file_path: Path to the file.
+    Detects the encoding and delimiter of a CSV file using chardet and csv.Sniffer.
+    
+    :param file_path: Path to the CSV file.
     :param num_bytes: Number of bytes to read for detection.
-    :return: Detected encoding or 'utf-8' as default.
+    :return: Tuple of (encoding, delimiter)
     """
     try:
         with open(file_path, 'rb') as f:
             raw_data = f.read(num_bytes)
+        # Detect encoding
         result = chardet.detect(raw_data)
         encoding = result['encoding']
         confidence = result['confidence']
-        if encoding and confidence > 0.5:
-            print(f"Detected encoding for '{file_path}': {encoding} (Confidence: {confidence})")
-            return encoding
-        else:
+        if not encoding or confidence < 0.5:
             print(f"Low confidence in encoding detection for '{file_path}'. Defaulting to 'utf-8'.")
-            return 'utf-8'
+            encoding = 'utf-8'
+        else:
+            print(f"Detected encoding for '{file_path}': {encoding} (Confidence: {confidence})")
+        
+        # Detect dialect (delimiter)
+        sample = raw_data[:num_bytes].decode(encoding, errors='replace')
+        sniffer = csv.Sniffer()
+        dialect = sniffer.sniff(sample)
+        delimiter = dialect.delimiter
+        print(f"Detected delimiter for '{file_path}': '{delimiter}'")
+        return encoding, delimiter
     except Exception as e:
-        print(f"Error detecting encoding for '{file_path}': {e}. Defaulting to 'utf-8'.")
-        return 'utf-8'
+        print(f"Error detecting encoding/dialect for '{file_path}': {e}. Defaulting to 'utf-8' and ','.")
+        return 'utf-8', ','
 
 def sanitize_name(name):
     """
     Sanitizes a string to create a valid URI by removing or replacing invalid characters.
-
+    
     :param name: Original name string.
     :return: Sanitized string.
     """
-    # Remove leading/trailing whitespace
+    if not name:
+        return "Unknown"
     name = name.strip()
     # Replace spaces and hyphens with underscores
     name = re.sub(r'[ \-]', '_', name)
@@ -73,7 +83,7 @@ def sanitize_name(name):
 def create_individual_uri(namespace, name):
     """
     Creates a URIRef for an individual, sanitizing the name.
-
+    
     :param namespace: rdflib Namespace.
     :param name: Name of the individual.
     :return: URIRef.
@@ -84,7 +94,7 @@ def create_individual_uri(namespace, name):
 def parse_time(time_str):
     """
     Parses a time string in the format "6:00am" or "12:00pm" to "HH:MM:SS".
-
+    
     :param time_str: Time string.
     :return: Time in "HH:MM:SS" format or None if parsing fails.
     """
@@ -100,7 +110,7 @@ def parse_time(time_str):
 def fix_datetime(dt_str):
     """
     Fixes date-time strings by removing unwanted spaces.
-
+    
     :param dt_str: Original date-time string.
     :return: Fixed date-time string.
     """
@@ -109,7 +119,7 @@ def fix_datetime(dt_str):
 def load_ontology(graph, ontology_file):
     """
     Loads the ontology into the RDF graph.
-
+    
     :param graph: rdflib Graph.
     :param ontology_file: Path to the ontology Turtle file.
     """
@@ -118,69 +128,94 @@ def load_ontology(graph, ontology_file):
         print(f"Ontology '{ontology_file}' loaded successfully.")
     except Exception as e:
         print(f"Error loading ontology '{ontology_file}': {e}")
+        sys.exit(1)
 
-# -----------------------------
-# Processing CSV Files
-# -----------------------------
+def get_normalized_headers(reader):
+    """
+    Normalizes headers by stripping whitespace and converting to lowercase.
+    
+    :param reader: csv.DictReader object.
+    :return: Dictionary mapping normalized header names to original header names.
+    """
+    original_headers = reader.fieldnames
+    if original_headers is None:
+        print("No headers found in CSV.")
+        return {}
+    normalized_map = {}
+    for header in original_headers:
+        normalized_header = header.strip().lower()
+        normalized_map[normalized_header] = header
+    return normalized_map
 
-def process_csv_file1(graph, csv_file, encoding):
+def process_csv_file1(graph, csv_file, encoding, delimiter):
     """
     Processes the first CSV file to create individuals for Business Units, Factories, Processes, Machines, and Shifts.
-
+    
     :param graph: rdflib Graph.
     :param csv_file: Path to the first CSV file.
     :param encoding: Encoding of the CSV file.
+    :param delimiter: Delimiter used in the CSV file.
     """
     try:
         with open(csv_file, 'r', encoding=encoding, errors='replace') as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f, delimiter=delimiter)
+            normalized_headers = get_normalized_headers(reader)
             data = list(reader)
         print(f"Processed '{csv_file}' successfully.")
     except Exception as e:
         print(f"Error reading '{csv_file}': {e}")
         return
-
+    
+    # Required columns
+    required_columns = ['enterprise', 'plant', 'process', 'machine', 'shift1', 'shift2', 'shift3']
+    # Check if all required columns are present
+    for col in required_columns:
+        if col not in normalized_headers:
+            print(f"Missing required column '{col}' in '{csv_file}'. Available columns: {list(normalized_headers.keys())}")
+            return
+    
     for row in data:
-        # Extract and sanitize data
-        enterprise = row.get('Enterprise', '').strip()
-        campus = row.get('Campus', '').strip()  # Assuming Campus maps to something, adjust as needed
-        plant = row.get('Plant', '').strip()
-        building = row.get('Building', '').strip()  # Assuming Building maps to something, adjust as needed
-        cell = row.get('Cell', '').strip()  # Assuming Cell maps to something, adjust as needed
-        process = row.get('Process', '').strip()
-        machine = row.get('Machine', '').strip()
-        shifts = [row.get('Shift 1', '').strip(), row.get('Shift 2', '').strip(), row.get('Shift 3', '').strip()]
-
+        # Extract and sanitize data using normalized headers
+        enterprise = row[normalized_headers['enterprise']].strip()
+        # Assuming 'Campus', 'Building', 'Cell' are not used based on your initial description. Modify if needed.
+        plant = row[normalized_headers['plant']].strip()
+        process = row[normalized_headers['process']].strip()
+        machine = row[normalized_headers['machine']].strip()
+        shift1 = row.get(normalized_headers.get('shift1', ''), '').strip()
+        shift2 = row.get(normalized_headers.get('shift2', ''), '').strip()
+        shift3 = row.get(normalized_headers.get('shift3', ''), '').strip()
+        shifts = [shift1, shift2, shift3]
+    
         # Create URIs
         enterprise_uri = create_individual_uri(namespace, enterprise)
         plant_uri = create_individual_uri(namespace, plant)
         process_uri = create_individual_uri(namespace, process)
         machine_uri = create_individual_uri(namespace, machine)
         shift_uris = [create_individual_uri(namespace, f"{enterprise}_Shift{i+1}") for i in range(3)]
-
+    
         # Add Business Unit individual
         graph.add((enterprise_uri, RDF.type, OWL.NamedIndividual))
         graph.add((enterprise_uri, RDF.type, namespace.Business_Unit))
         graph.add((enterprise_uri, RDFS.label, Literal(enterprise)))
-
+    
         # Add Factory individual
         graph.add((plant_uri, RDF.type, OWL.NamedIndividual))
         graph.add((plant_uri, RDF.type, namespace.Factory))
         graph.add((plant_uri, RDFS.label, Literal(f"{enterprise} Factory {plant}")))
         graph.add((plant_uri, namespace.continuant_part_of, enterprise_uri))
         graph.add((plant_uri, namespace.has_continuant_part, machine_uri))
-
+    
         # Add Machine individual
         graph.add((machine_uri, RDF.type, OWL.NamedIndividual))
         graph.add((machine_uri, RDF.type, namespace.Machine))
         graph.add((machine_uri, RDFS.label, Literal(machine)))
         graph.add((machine_uri, namespace.participates_in, process_uri))
-
+    
         # Add Act of Manufacturing individual
         graph.add((process_uri, RDF.type, OWL.NamedIndividual))
         graph.add((process_uri, RDF.type, namespace.Act_of_Manufacturing))
         graph.add((process_uri, RDFS.label, Literal(process)))
-
+    
         # Add Shift individuals and link to Process
         for i, shift_time in enumerate(shifts):
             shift_uri = shift_uris[i]
@@ -191,90 +226,98 @@ def process_csv_file1(graph, csv_file, encoding):
                 start_time_str, end_time_str = shift_time.split('-')
                 start_time = parse_time(start_time_str)
                 end_time = parse_time(end_time_str)
-
+    
                 if not start_time or not end_time:
                     print(f"Invalid shift times for {enterprise} Shift {i+1}, skipping.")
                     continue
-
+    
                 # Add Shift individual
                 graph.add((shift_uri, RDF.type, OWL.NamedIndividual))
                 graph.add((shift_uri, RDF.type, namespace.Work_Shift_Interval))
                 graph.add((shift_uri, RDFS.label, Literal(f"{enterprise} Shift {i+1}")))
                 graph.add((shift_uri, namespace.start_time, Literal(start_time, datatype=XSD.time)))
                 graph.add((shift_uri, namespace.end_time, Literal(end_time, datatype=XSD.time)))
-
+    
                 # Link Shift to Process
                 graph.add((process_uri, namespace.is_temporal_region_of, shift_uri))
             except ValueError as e:
                 print(f"Error processing shift times '{shift_time}' for {enterprise} Shift {i+1}: {e}")
 
-def process_csv_file2(graph, csv_file, encoding):
+def process_csv_file2(graph, csv_file, encoding, delimiter):
     """
     Processes the second CSV file to create individuals for Machine Stasis Operationality and Intervals.
-
+    
     :param graph: rdflib Graph.
     :param csv_file: Path to the second CSV file.
     :param encoding: Encoding of the CSV file.
+    :param delimiter: Delimiter used in the CSV file.
     """
     try:
         with open(csv_file, 'r', encoding=encoding, errors='replace') as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f, delimiter=delimiter)
+            normalized_headers = get_normalized_headers(reader)
             data = list(reader)
         print(f"Processed '{csv_file}' successfully.")
     except Exception as e:
         print(f"Error reading '{csv_file}': {e}")
         return
-
+    
+    # Required columns for file2.csv based on your sample
+    required_columns = ['device_id', 'event_value', 'event_datetime']
+    for col in required_columns:
+        if col not in normalized_headers:
+            print(f"Missing required column '{col}' in '{csv_file}'. Available columns: {list(normalized_headers.keys())}")
+            return
+    
     # Group events by DEVICE_ID
     device_events = defaultdict(list)
     for row in data:
-        device_id = row.get('DEVICE_ID', '').strip()
+        device_id = row[normalized_headers['device_id']].strip()
         if device_id:
             device_events[device_id].append(row)
         else:
             print("Empty DEVICE_ID found, skipping row.")
-
+    
     # Process events for each device
     for device_id, events in device_events.items():
         if not device_id:
             continue
-
-        # Sort events by EVENT_TIMESTAMP or EVENT_DATETIME
-        # Assuming EVENT_DATETIME is the correct field to sort by
+    
+        # Sort events by EVENT_DATETIME
         try:
-            events_sorted = sorted(events, key=lambda x: fix_datetime(x.get('EVENT_DATETIME', '')))
+            events_sorted = sorted(events, key=lambda x: fix_datetime(x.get(normalized_headers['event_datetime'], '')))
         except Exception as e:
             print(f"Error sorting events for device '{device_id}': {e}")
             continue
-
+    
         status_counter = 0
         machine_uri = create_individual_uri(namespace, device_id)
-
+    
         for i in range(len(events_sorted) - 1):
             current_event = events_sorted[i]
             next_event = events_sorted[i + 1]
-
-            status = current_event.get('EVENT_VALUE', '').strip()
-            start_time = fix_datetime(current_event.get('EVENT_DATETIME', ''))
-            end_time = fix_datetime(next_event.get('EVENT_DATETIME', ''))
-
+    
+            status = current_event.get(normalized_headers['event_value'], '').strip()
+            start_time = fix_datetime(current_event.get(normalized_headers['event_datetime'], ''))
+            end_time = fix_datetime(next_event.get(normalized_headers['event_datetime'], ''))
+    
             if not status or not start_time or not end_time:
                 print(f"Missing data in events for device '{device_id}', skipping event {i+1}.")
                 continue
-
+    
             status_counter += 1
             status_name = f"Machine_Status{status_counter}_{sanitize_name(status)}"
             status_uri = create_individual_uri(namespace, status_name)
             interval_name = f"Interval{status_counter}"
             interval_uri = create_individual_uri(namespace, interval_name)
-
+    
             # Add Stasis_of_Machine_Operationality individual
             graph.add((status_uri, RDF.type, OWL.NamedIndividual))
             graph.add((status_uri, RDF.type, namespace.Stasis_of_Machine_Operationality))
             graph.add((status_uri, RDFS.label, Literal(status_name)))
             graph.add((status_uri, namespace.has_participant, machine_uri))
             graph.add((status_uri, namespace.occupies_temporal_region, interval_uri))
-
+    
             # Add Machine_Stasis_Interval individual
             graph.add((interval_uri, RDF.type, OWL.NamedIndividual))
             graph.add((interval_uri, RDF.type, namespace.Machine_Stasis_Interval))
@@ -288,17 +331,17 @@ def process_csv_file2(graph, csv_file, encoding):
 def main():
     # Load the ontology
     load_ontology(individuals_graph, ONTOLOGY_FILE)
-
-    # Detect encodings
-    encoding_file1 = detect_encoding(CSV_FILE1)
-    encoding_file2 = detect_encoding(CSV_FILE2)
-
+    
+    # Detect encodings and delimiters
+    encoding_file1, delimiter_file1 = detect_encoding_and_dialect(CSV_FILE1)
+    encoding_file2, delimiter_file2 = detect_encoding_and_dialect(CSV_FILE2)
+    
     # Process the first CSV file
-    process_csv_file1(individuals_graph, CSV_FILE1, encoding_file1)
-
+    process_csv_file1(individuals_graph, CSV_FILE1, encoding_file1, delimiter_file1)
+    
     # Process the second CSV file
-    process_csv_file2(individuals_graph, CSV_FILE2, encoding_file2)
-
+    process_csv_file2(individuals_graph, CSV_FILE2, encoding_file2, delimiter_file2)
+    
     # Serialize the graph to Turtle format
     try:
         ttl_output = individuals_graph.serialize(format='turtle')
