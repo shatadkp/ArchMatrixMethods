@@ -1,0 +1,60 @@
+PREFIX : <http://api.stardog.com/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?shift ?status (ROUND(SUM(?durationMinutes)) AS ?totalMinutes)
+WHERE {
+  VALUES (?shiftStart ?shiftEnd ?shift ?date) {
+    ("2024-07-03T00:00:00Z"^^xsd:dateTime "2024-07-03T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-03"^^xsd:date)
+    ("2024-07-03T08:00:00Z"^^xsd:dateTime "2024-07-03T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-03"^^xsd:date)
+    ("2024-07-03T16:00:00Z"^^xsd:dateTime "2024-07-04T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-03"^^xsd:date)
+    ("2024-07-04T00:00:00Z"^^xsd:dateTime "2024-07-04T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-04"^^xsd:date)
+    ("2024-07-04T08:00:00Z"^^xsd:dateTime "2024-07-04T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-04"^^xsd:date)
+    ("2024-07-04T16:00:00Z"^^xsd:dateTime "2024-07-05T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-04"^^xsd:date)
+    ("2024-07-05T00:00:00Z"^^xsd:dateTime "2024-07-05T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-05"^^xsd:date)
+    ("2024-07-05T08:00:00Z"^^xsd:dateTime "2024-07-05T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-05"^^xsd:date)
+    ("2024-07-05T16:00:00Z"^^xsd:dateTime "2024-07-06T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-05"^^xsd:date)
+    ("2024-07-06T00:00:00Z"^^xsd:dateTime "2024-07-06T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-06"^^xsd:date)
+    ("2024-07-06T08:00:00Z"^^xsd:dateTime "2024-07-06T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-06"^^xsd:date)
+    ("2024-07-06T16:00:00Z"^^xsd:dateTime "2024-07-07T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-06"^^xsd:date)
+    ("2024-07-07T00:00:00Z"^^xsd:dateTime "2024-07-07T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-07"^^xsd:date)
+    ("2024-07-07T08:00:00Z"^^xsd:dateTime "2024-07-07T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-07"^^xsd:date)
+    ("2024-07-07T16:00:00Z"^^xsd:dateTime "2024-07-08T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-07"^^xsd:date)
+    ("2024-07-08T00:00:00Z"^^xsd:dateTime "2024-07-08T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-08"^^xsd:date)
+    ("2024-07-08T08:00:00Z"^^xsd:dateTime "2024-07-08T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-08"^^xsd:date)
+    ("2024-07-08T16:00:00Z"^^xsd:dateTime "2024-07-09T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-08"^^xsd:date)
+    ("2024-07-09T00:00:00Z"^^xsd:dateTime "2024-07-09T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-09"^^xsd:date)
+    ("2024-07-09T08:00:00Z"^^xsd:dateTime "2024-07-09T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-09"^^xsd:date)
+    ("2024-07-09T16:00:00Z"^^xsd:dateTime "2024-07-10T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-09"^^xsd:date)
+    ("2024-07-10T00:00:00Z"^^xsd:dateTime "2024-07-10T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-10"^^xsd:date)
+    ("2024-07-10T08:00:00Z"^^xsd:dateTime "2024-07-10T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-10"^^xsd:date)
+    ("2024-07-10T16:00:00Z"^^xsd:dateTime "2024-07-11T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-10"^^xsd:date)
+    ("2024-07-11T00:00:00Z"^^xsd:dateTime "2024-07-11T08:00:00Z"^^xsd:dateTime "Shift 1" "2024-07-11"^^xsd:date)
+    ("2024-07-11T08:00:00Z"^^xsd:dateTime "2024-07-11T16:00:00Z"^^xsd:dateTime "Shift 2" "2024-07-11"^^xsd:date)
+    ("2024-07-11T16:00:00Z"^^xsd:dateTime "2024-07-12T00:00:00Z"^^xsd:dateTime "Shift 3" "2024-07-11"^^xsd:date)
+  }
+
+  ?machineStatus :has_participant :USA0640_5290_PR5OkumaCNCGrinder_Grinder ;
+                 :occupies_temporal_region ?interval ;
+                 rdfs:label ?statusLabel .
+
+  ?interval :start_time ?intervalStart ;
+            :end_time ?intervalEnd .
+
+  BIND(IF(?intervalStart < ?shiftStart, ?shiftStart, ?intervalStart) AS ?overlapStart)
+  BIND(IF(?intervalEnd > ?shiftEnd, ?shiftEnd, ?intervalEnd) AS ?overlapEnd)
+
+  FILTER(?overlapStart < ?overlapEnd)
+
+  BIND((?overlapEnd - ?overlapStart) AS ?duration)
+  BIND((HOURS(?duration) * 60 + MINUTES(?duration) + SECONDS(?duration) / 60) AS ?durationMinutes)
+
+  BIND(
+    IF(CONTAINS(UCASE(STR(?statusLabel)), "MAINTENANCE"), "MAINTENANCE",
+    IF(CONTAINS(UCASE(STR(?statusLabel)), "IDLE"), "IDLE",
+    IF(CONTAINS(UCASE(STR(?statusLabel)), "SETUP"), "SETUP",
+    IF(CONTAINS(UCASE(STR(?statusLabel)), "RUNNING"), "RUNNING",
+    "OTHER")))) AS ?status
+  )
+}
+GROUP BY ?shift ?status
+ORDER BY ?shift ?status
