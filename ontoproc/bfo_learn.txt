@@ -1,0 +1,140 @@
+import csv
+import datetime
+from rdflib import Graph, Namespace, RDF, RDFS, OWL, XSD, URIRef, Literal
+
+# Load ontology
+ontology_graph = Graph()
+ontology_graph.parse('oeenew1.ttl', format='turtle')
+
+# Define the namespace
+namespace = Namespace('http://www.semanticweb.org/e400/ontologies/2024/8/oee-ont-092324/')
+
+# Initialize the main graph for individuals
+individuals_graph = Graph()
+individuals_graph.bind('', namespace)
+individuals_graph.bind('owl', OWL)
+individuals_graph.bind('rdf', RDF)
+individuals_graph.bind('rdfs', RDFS)
+individuals_graph.bind('xsd', XSD)
+
+# Function to create a URIRef for an individual
+def create_individual_uri(name):
+    return namespace[name]
+
+# Function to parse time strings to 24-hour format
+def parse_time(time_str):
+    time_str = time_str.strip().lower().replace(' ', '')
+    in_time = datetime.datetime.strptime(time_str, "%I:%M%p")
+    time_24 = in_time.strftime("%H:%M:%S")
+    return time_24
+
+# Read the first CSV file
+with open('Static_Data_Book2.csv', 'r', encoding='utf-8') as f:
+    reader = csv.DictReader(f)
+    data1 = list(reader)
+
+# Process the first CSV file
+for row in data1:
+    enterprise = row['Enterprise'].strip()
+    plant = row['Plant'].strip()
+    process = row['Process'].strip()
+    machine = row['Machine'].strip()
+    shift_times = [row['Shift 1'].strip(), row['Shift 2'].strip(), row['Shift 3'].strip()]
+
+    # Create URIs for individuals
+    enterprise_uri = create_individual_uri(enterprise.replace(' ', ''))
+    plant_uri = create_individual_uri(plant.replace(' ', ''))
+    process_uri = create_individual_uri(process.replace(' ', ''))
+    machine_uri = create_individual_uri(machine.replace(' ', ''))
+    shift_uris = [create_individual_uri(f"{enterprise.replace(' ', '')}Shift{i+1}") for i in range(3)]
+
+    # Create Business Unit individual
+    individuals_graph.add((enterprise_uri, RDF.type, OWL.NamedIndividual))
+    individuals_graph.add((enterprise_uri, RDF.type, namespace.Business_Unit))
+    individuals_graph.add((enterprise_uri, RDFS.label, Literal(enterprise)))
+
+    # Create Factory individual
+    individuals_graph.add((plant_uri, RDF.type, OWL.NamedIndividual))
+    individuals_graph.add((plant_uri, RDF.type, namespace.Factory))
+    individuals_graph.add((plant_uri, RDFS.label, Literal(f"{enterprise} Factory {plant}")))
+    individuals_graph.add((plant_uri, namespace.continuant_part_of, enterprise_uri))
+    individuals_graph.add((plant_uri, namespace.has_continuant_part, machine_uri))
+
+    # Create Machine individual
+    individuals_graph.add((machine_uri, RDF.type, OWL.NamedIndividual))
+    individuals_graph.add((machine_uri, RDF.type, namespace.Machine))
+    individuals_graph.add((machine_uri, RDFS.label, Literal(machine)))
+    individuals_graph.add((machine_uri, namespace.participates_in, process_uri))
+
+    # Create Act of Manufacturing individual
+    individuals_graph.add((process_uri, RDF.type, OWL.NamedIndividual))
+    individuals_graph.add((process_uri, RDF.type, namespace.Act_of_Manufacturing))
+    individuals_graph.add((process_uri, RDFS.label, Literal(process)))
+
+    # Create Shift individuals and link them to the process
+    for i, shift_time in enumerate(shift_times):
+        shift_uri = shift_uris[i]
+        start_time_str, end_time_str = shift_time.split('-')
+        start_time = parse_time(start_time_str)
+        end_time = parse_time(end_time_str)
+
+        # Create Shift individual
+        individuals_graph.add((shift_uri, RDF.type, OWL.NamedIndividual))
+        individuals_graph.add((shift_uri, RDF.type, namespace.Work_Shift_Interval))
+        individuals_graph.add((shift_uri, RDFS.label, Literal(f"{enterprise} Shift {i+1}")))
+        individuals_graph.add((shift_uri, namespace.start_time, Literal(start_time, datatype=XSD.time)))
+        individuals_graph.add((shift_uri, namespace.end_time, Literal(end_time, datatype=XSD.time)))
+
+        # Link Shift to Process
+        individuals_graph.add((process_uri, namespace.is_temporal_region_of, shift_uri))
+
+# Read the second CSV file
+with open('TimeSeriers1.csv', 'r', encoding='utf-8') as f:
+    reader = csv.DictReader(f)
+    data2 = list(reader)
+
+# Group events by DEVICE_ID
+from collections import defaultdict
+
+device_events = defaultdict(list)
+for row in data2:
+    device_id = row['DEVICE_ID'].strip()
+    device_events[device_id].append(row)
+
+# Process events for each device
+for device_id, events in device_events.items():
+    # Sort events by EVENT_DATETIME
+    events.sort(key=lambda x: x['EVENT_DATETIME'])
+    status_counter = 0
+    machine_uri = create_individual_uri(device_id.replace(' ', ''))
+
+    for i in range(len(events) - 1):
+        event = events[i]
+        next_event = events[i + 1]
+
+        status = event['EVENT_VALUE'].strip()
+        start_time = event['EVENT_DATETIME'].strip()
+        end_time = next_event['EVENT_DATETIME'].strip()
+
+        status_counter += 1
+        status_name = f"Machine_Status{status_counter}_{status.replace(' ', '')}"
+        status_uri = create_individual_uri(status_name)
+        interval_name = f"Interval{status_counter}"
+        interval_uri = create_individual_uri(interval_name)
+
+        # Create Stasis of Machine Operationality individual
+        individuals_graph.add((status_uri, RDF.type, OWL.NamedIndividual))
+        individuals_graph.add((status_uri, RDF.type, namespace.Stasis_of_Machine_Operationality))
+        individuals_graph.add((status_uri, RDFS.label, Literal(status_name)))
+        individuals_graph.add((status_uri, namespace.has_participant, machine_uri))
+        individuals_graph.add((status_uri, namespace.occupies_temporal_region, interval_uri))
+
+        # Create Interval individual
+        individuals_graph.add((interval_uri, RDF.type, OWL.NamedIndividual))
+        individuals_graph.add((interval_uri, RDF.type, namespace.Machine_Stasis_Interval))
+        individuals_graph.add((interval_uri, namespace.start_time, Literal(start_time, datatype=XSD.dateTime)))
+        individuals_graph.add((interval_uri, namespace.end_time, Literal(end_time, datatype=XSD.dateTime)))
+
+# Serialize the individuals graph to Turtle format
+ttl_output = individuals_graph.serialize(format='turtle')
+print(ttl_output)
