@@ -216,4 +216,100 @@ plt.ylabel('Songwriter Name')
 plt.show()
 
 
+############################Average Song Length Over Years
+# Define the query
+avg_song_length_year_query = """
+SELECT ?year (AVG(?length) AS ?avg_length) WHERE {
+  ?song a <http://stardog.com/tutorial/Song> ;
+        <http://stardog.com/tutorial/length> ?length ;
+        ^<http://stardog.com/tutorial/track> ?album .
+  ?album <http://stardog.com/tutorial/date> ?date .
+  BIND(YEAR(?date) AS ?year)
+}
+GROUP BY ?year
+ORDER BY ?year
+"""
 
+# Execute the query
+csv_results = conn.select(avg_song_length_year_query, content_type='text/csv')
+df_avg_length_year = pd.read_csv(io.BytesIO(csv_results))
+
+# Convert columns to numeric
+df_avg_length_year['year'] = pd.to_numeric(df_avg_length_year['year'])
+df_avg_length_year['avg_length'] = pd.to_numeric(df_avg_length_year['avg_length'])
+
+# Plot the data
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=df_avg_length_year, x='year', y='avg_length', marker='o')
+plt.title('Average Song Length Over Years')
+plt.xlabel('Year')
+plt.ylabel('Average Length (seconds)')
+plt.xticks(df_avg_length_year['year'], rotation=45)
+plt.show()
+
+
+########################Songs Per Band vs. Solo Artists
+
+# Define the query
+songs_per_artist_type_query = """
+SELECT ?artist_type (COUNT(?song) AS ?num_songs) WHERE {
+  ?song a <http://stardog.com/tutorial/Song> ;
+        ^<http://stardog.com/tutorial/track> ?album .
+  ?album <http://stardog.com/tutorial/artist> ?artist .
+  ?artist a ?type .
+  FILTER(?type IN (<http://stardog.com/tutorial/Band>, <http://stardog.com/tutorial/SoloArtist>))
+  BIND(IF(?type = <http://stardog.com/tutorial/Band>, "Band", "Solo Artist") AS ?artist_type)
+}
+GROUP BY ?artist_type
+"""
+
+# Execute the query
+csv_results = conn.select(songs_per_artist_type_query, content_type='text/csv')
+df_songs_artist_type = pd.read_csv(io.BytesIO(csv_results))
+
+# Convert num_songs to numeric
+df_songs_artist_type['num_songs'] = pd.to_numeric(df_songs_artist_type['num_songs'])
+
+# Plot the data
+plt.figure(figsize=(8, 6))
+sns.barplot(data=df_songs_artist_type, x='artist_type', y='num_songs', palette='Set2')
+plt.title('Number of Songs by Artist Type')
+plt.xlabel('Artist Type')
+plt.ylabel('Number of Songs')
+plt.show()
+
+
+###########################Heatmap of Albums Released by Month and Year
+
+
+# Define the query
+albums_heatmap_query = """
+SELECT ?year ?month (COUNT(?album) AS ?num_albums) WHERE {
+  ?album a <http://stardog.com/tutorial/Album> ;
+         <http://stardog.com/tutorial/date> ?date .
+  BIND(YEAR(?date) AS ?year)
+  BIND(MONTH(?date) AS ?month)
+}
+GROUP BY ?year ?month
+ORDER BY ?year ?month
+"""
+
+# Execute the query
+csv_results = conn.select(albums_heatmap_query, content_type='text/csv')
+df_heatmap = pd.read_csv(io.BytesIO(csv_results))
+
+# Convert columns to numeric
+df_heatmap['year'] = pd.to_numeric(df_heatmap['year'])
+df_heatmap['month'] = pd.to_numeric(df_heatmap['month'])
+df_heatmap['num_albums'] = pd.to_numeric(df_heatmap['num_albums'])
+
+# Pivot the data for the heatmap
+heatmap_data = df_heatmap.pivot('month', 'year', 'num_albums').fillna(0)
+
+# Plot the heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(heatmap_data, annot=True, fmt=".0f", cmap='YlGnBu')
+plt.title('Heatmap of Albums Released by Month and Year')
+plt.xlabel('Year')
+plt.ylabel('Month')
+plt.show()
