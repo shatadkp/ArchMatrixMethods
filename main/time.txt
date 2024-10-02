@@ -1,0 +1,8 @@
+  BIND(IF(CONTAINS(?timeString, "am"),
+           xsd:time(CONCAT(STRBEFORE(?timeString, ":"), ":00:00")),
+           IF(CONTAINS(?timeString, "pm"),
+              # Adjust the hour for pm times (e.g., 2:00pm becomes 14:00:00)
+              xsd:time(CONCAT(STR(12 + xsd:integer(STRBEFORE(?timeString, ":"))), ":00:00")),
+              ?timeString
+           )
+       ) AS ?formattedTime)
