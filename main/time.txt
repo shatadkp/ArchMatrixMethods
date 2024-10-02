@@ -6,3 +6,18 @@
               ?timeString
            )
        ) AS ?formattedTime)
+
+
+
+===========
+
+
+1. Understand Stardog's Reasoning Capabilities
+
+Before implementing custom rules, it's essential to understand the reasoning features Stardog offers:
+
+    Built-in Reasoning: Stardog supports RDFS, OWL 2 RL, EL, QL, and DL profiles.
+    Custom Rules: You can define custom inference rules using Stardog's rule syntax.
+    Rule Formats: Stardog supports rules written in its proprietary rule language and in SWRL (Semantic Web Rule Language).
+
+
