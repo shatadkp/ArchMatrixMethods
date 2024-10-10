@@ -31,4 +31,170 @@ end_date = df_statuses['end'].dt.date.max()
 
 =========================================
 
+# Generate date range
+date_range = pd.date_range(start_date, end_date)
+
+# Function to generate shift intervals
+def generate_shift_intervals(df_shifts, date_range):
+    shift_intervals = []
+    for date in date_range:
+        for idx, shift in df_shifts.iterrows():
+            shift_label = shift['shift_label']
+            shift_start = shift['shift_start']
+            shift_end = shift['shift_end']
+            shift_name = shift['shift']
+            
+            start_datetime = datetime.combine(date, shift_start)
+            end_datetime = datetime.combine(date, shift_end)
+            if shift_end <= shift_start:
+                # Shift crosses midnight
+                end_datetime += timedelta(days=1)
+            shift_intervals.append({
+                'shift': shift_name,
+                'shift_label': f"{shift_label} ({date.date()})",
+                'shift_start': start_datetime,
+                'shift_end': end_datetime
+            })
+    return pd.DataFrame(shift_intervals)
+
+# Generate shift intervals
+df_shift_intervals = generate_shift_intervals(df_shifts, date_range)
+
+
+
+
+============
+
+print(df_shift_intervals[['shift_label', 'shift_start', 'shift_end']])
+
+
+
+============
+
+
+
+# Prepare for cross join
+df_statuses['key'] = 1
+df_shift_intervals['key'] = 1
+
+# Cross join to combine statuses and shifts
+df_cross = pd.merge(df_statuses, df_shift_intervals, on='key')
+
+# Function to compute overlap
+def compute_overlap(start1, end1, start2, end2):
+    latest_start = max(start1, start2)
+    earliest_end = min(end1, end2)
+    delta = (earliest_end - latest_start).total_seconds()
+    overlap = max(0, delta)
+    return overlap
+
+# Compute overlaps
+df_cross['overlap'] = df_cross.apply(
+    lambda row: compute_overlap(
+        row['start'], row['end'],
+        row['shift_start'], row['shift_end']
+    ), axis=1
+)
+
+# Filter overlaps
+df_overlaps = df_cross[df_cross['overlap'] > 0]
+
+
+
+
+=======================
+
+print(df_overlaps[['status_label', 'shift_label', 'overlap']].head())
+
+
+==================================
+
+# Group by shift and status
+df_grouped = df_overlaps.groupby(['shift_label', 'status_label'])['overlap'].sum().reset_index()
+
+# Convert seconds to hours
+df_grouped['overlap_hours'] = df_grouped['overlap'] / 3600  # Convert seconds to hours
+
+# Pivot the data
+df_pivot = df_grouped.pivot(index='shift_label', columns='status_label', values='overlap_hours').fillna(0)
+
+
+
+=========================
+
+
+print(df_pivot)
+
+
+
+=======================
+
+
+import matplotlib.pyplot as plt
+
+# Plot the data
+ax = df_pivot.plot(kind='bar', stacked=True, figsize=(12, 8), colormap='tab20')
+
+# Customize the plot
+plt.title('Total Machine Status Time per Shift')
+plt.xlabel('Shift')
+plt.ylabel('Hours')
+plt.legend(title='Machine Status', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.tight_layout()
+plt.show()
+
+
+=================================
+
+
+
+import seaborn as sns
+
+# Melt the pivoted DataFrame for seaborn
+df_melted = df_pivot.reset_index().melt(id_vars='shift_label', var_name='status_label', value_name='hours')
+
+# Plot using seaborn
+plt.figure(figsize=(12, 8))
+sns.barplot(data=df_melted, x='shift_label', y='hours', hue='status_label', palette='tab20', ci=None)
+
+# Customize the plot
+plt.title('Total Machine Status Time per Shift')
+plt.xlabel('Shift')
+plt.ylabel('Hours')
+plt.legend(title='Machine Status', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+===================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
