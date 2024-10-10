@@ -19,10 +19,16 @@ ORDER BY ?start
 csv_results = connection.select(status_query, content_type='text/csv')
 df_statuses = pd.read_csv(io.BytesIO(csv_results))
 
-# Parse start and end times
-df_statuses['start'] = pd.to_datetime(df_statuses['start'])
-df_statuses['end'] = pd.to_datetime(df_statuses['end'])
+# Parse start and end times with UTC parsing
+df_statuses['start'] = pd.to_datetime(df_statuses['start'], utc=True)
+df_statuses['end'] = pd.to_datetime(df_statuses['end'], utc=True)
 
 # Get date range
 start_date = df_statuses['start'].dt.date.min()
 end_date = df_statuses['end'].dt.date.max()
+
+
+
+=========================================
+
+
