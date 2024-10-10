@@ -1,0 +1,28 @@
+# Query to get machine statuses
+status_query = """
+PREFIX : <http://api.stardog.com/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?status ?status_label ?start ?end WHERE {
+  ?status a :Stasis_of_Machine_Operationality ;
+          :has_participant :USA0640_5290_PR5OkumaCNCGrinder_Grinder ;
+          :occupies_temporal_region ?interval ;
+          rdfs:label ?status_label .
+  ?interval :start_time ?start ;
+            :end_time ?end .
+}
+ORDER BY ?start
+"""
+
+# Execute query
+csv_results = connection.select(status_query, content_type='text/csv')
+df_statuses = pd.read_csv(io.BytesIO(csv_results))
+
+# Parse start and end times
+df_statuses['start'] = pd.to_datetime(df_statuses['start'])
+df_statuses['end'] = pd.to_datetime(df_statuses['end'])
+
+# Get date range
+start_date = df_statuses['start'].dt.date.min()
+end_date = df_statuses['end'].dt.date.max()
