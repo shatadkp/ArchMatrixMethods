@@ -90,8 +90,8 @@ df_shift_intervals = generate_shift_intervals(df_shifts, date_range)
 df_statuses['key'] = 1
 df_shift_intervals['key'] = 1
 
-# Cross join to combine statuses and shifts
-df_cross = pd.merge(df_statuses, df_shift_intervals, on='key')
+# Cross join to combine statuses and shifts with specified suffixes
+df_cross = pd.merge(df_statuses, df_shift_intervals, on='key', suffixes=('_status', '_shift'))
 
 # Function to compute overlap
 def compute_overlap(start1, end1, start2, end2):
@@ -104,7 +104,7 @@ def compute_overlap(start1, end1, start2, end2):
 # Compute overlaps
 df_cross['overlap'] = df_cross.apply(
     lambda row: compute_overlap(
-        row['start'], row['end'],
+        row['start_status'], row['end_status'],
         row['shift_start'], row['shift_end']
     ), axis=1
 )
