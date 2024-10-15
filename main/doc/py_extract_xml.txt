@@ -1,0 +1,273 @@
+We will use OWL2 DL to represent the ontology and define logical axioms that can be used to answer the DSQ. The formalization will include the necessary classes, object properties, and axioms, based on the information provided.
+Key Concepts and Classes:
+
+    CustomerA (Instance of Customer)
+        Subclass of CommercialOrganization
+
+    Engine
+        Continuant part of Aircraft
+        Participates in EngineRun
+
+    Aircraft
+        Used by CustomerA
+        Participates in Flight
+
+    Flight
+        Subclass of Process
+        Has process parts FlightSegment
+        Measured by FlightData
+        Agent in CustomerA
+
+    EngineRun
+        Subclass of Process
+        Measured by EngineRunData
+
+    FlightData
+        Subclass of MeasurementInformationContentEntity
+        Measures FlightOperationalCondition
+
+    EngineRunData
+        Subclass of MeasurementInformationContentEntity
+        Measures EngineOperationalCondition
+
+    EngineRunDesignAssumptions
+        Subclass of PrescriptiveInformationContentEntity
+        Prescribes EngineRun
+        Prescribes EngineOperationalCondition
+
+    EngineComplianceResult
+        Subclass of InformationContentEntity
+        Is about CustomerA
+
+    FlightOperationalCondition
+        Subclass of OperationalCondition
+        Measured by FlightData
+        Has attributes missionFlightLength and missionType
+
+    EngineOperationalCondition
+        Subclass of OperationalCondition
+        Measured by EngineRunData
+
+    ConformingEngineRun
+        Subclass of EngineRun
+        Defined by conformance to design assumptions
+
+    ConformingCustomer
+        Subclass of Customer
+        Defined by operating engines in conformance with design assumptions
+
+Key Object Properties:
+
+    uses (Customer → Aircraft)
+    agentIn (Customer → Flight)
+    participatesIn (Aircraft → Flight)
+    continuantPartOf (Engine → Aircraft)
+    participatesIn (Engine → EngineRun)
+    isMeasuredBy (Flight → FlightData)
+    isMeasuredBy (EngineRun → EngineRunData)
+    prescribes (EngineRunDesignAssumptions → EngineRun)
+    prescribes (EngineRunDesignAssumptions → EngineOperationalCondition)
+    hasInput (ActOfEngineComplianceAssessment → EngineRunData)
+    hasInput (ActOfEngineComplianceAssessment → EngineRunDesignAssumptions)
+    hasOutput (ActOfEngineComplianceAssessment → EngineComplianceResult)
+    isAbout (EngineComplianceResult → CustomerA)
+    affects (CustomerA → EngineOperationalCondition)
+    conformsToDesignAssumptions (EngineOperationalCondition → EngineRunDesignAssumptions)
+        Note: This is a new object property we define to represent conformance.
+
+Logical Axioms and Formalization:
+
+We will formalize the DSQ by defining axioms that relate the classes and properties to determine whether Customer A operates their engines according to the design assumptions.
+1. Customer A Operates Engines:
+
+    Axiom 1: uses(CustomerA, AircraftA)
+    Axiom 2: continuantPartOf(EngineE, AircraftA)
+    Inference: From Axiom 1 and Axiom 2, we infer that Customer A operates Engine E.
+
+2. Engine Runs and Data:
+
+    Axiom 3: participatesIn(EngineE, EngineRunER)
+    Axiom 4: isMeasuredBy(EngineRunER, EngineRunDataERD)
+    Axiom 5: isMeasuredBy(EngineOperationalConditionEOC, EngineRunDataERD)
+
+3. Design Assumptions and Prescriptions:
+
+    Axiom 6: prescribes(EngineRunDesignAssumptionsERDA, EngineRunER)
+    Axiom 7: prescribes(EngineRunDesignAssumptionsERDA, EngineOperationalConditionEOC)
+
+4. Flight Operational Conditions:
+
+    Axiom 8: agentIn(CustomerA, FlightF)
+    Axiom 9: isMeasuredBy(FlightF, FlightDataFD)
+    Axiom 10: isMeasuredBy(FlightOperationalConditionFOC, FlightDataFD)
+    Axiom 11: hasAttribute(FlightOperationalConditionFOC, missionFlightLength)
+    Axiom 12: hasAttribute(FlightOperationalConditionFOC, missionType)
+
+5. Conformance to Design Assumptions:
+
+We need to determine whether the actual mission flight lengths and mission mix operated by Customer A conform to the design assumptions.
+
+    Axiom 13 (Conformance Definition):
+
+    We introduce a class ConformingEngineRun defined as:
+
+    sql
+
+ConformingEngineRun ≡ EngineRun and
+                      (isMeasuredBy some (EngineRunData and
+                          (isMeasuredBy some (EngineOperationalCondition and
+                              conformsToDesignAssumptions value true))))
+
+Axiom 14 (Conforming Customer Definition):
+
+We define ConformingCustomer as:
+
+sql
+
+ConformingCustomer ≡ Customer and
+                     (agentIn some (Flight and
+                         (isMeasuredBy some (FlightData and
+                             (isMeasuredBy some (FlightOperationalCondition and
+                                 conformsToDesignAssumptions value true)))))
+
+Axiom 15 (Conforms to Design Assumptions):
+
+We assert that an EngineOperationalCondition conforms to the EngineRunDesignAssumptions if it matches the prescribed mission flight lengths and mission mix.
+
+    Since OWL2 DL cannot represent complex numerical comparisons, we use a property to represent this conformance:
+
+    scss
+
+conformsToDesignAssumptions(EngineOperationalConditionEOC, EngineRunDesignAssumptionsERDA)
+
+Alternatively, we can define a boolean data property hasConformanceStatus:
+
+scss
+
+        hasConformanceStatus(EngineOperationalConditionEOC, true)
+
+6. Formal Representation of the DSQ:
+
+    Goal: Determine if CustomerA is a ConformingCustomer.
+
+    Axiom 16:
+
+    If all EngineOperationalCondition instances measured from EngineRunData of EngineRun participated by EngineE operated by CustomerA conform to the EngineRunDesignAssumptions, then CustomerA is a ConformingCustomer.
+
+    scss
+
+    If ∀ er (participatesIn(EngineE, er) ∧
+             operates(CustomerA, EngineE) ∧
+             isMeasuredBy(er, erd) ∧
+             isMeasuredBy(eoc, erd) ∧
+             conformsToDesignAssumptions(eoc, erda))
+    Then CustomerA ∈ ConformingCustomer
+
+    Note: The actual determination of conformance (conformsToDesignAssumptions) requires comparing mission flight lengths and mission mix percentages, which involves numerical computation beyond OWL2 DL capabilities. This computation should be performed externally (e.g., via data preprocessing or using SWRL rules with built-in functions) and the results asserted in the ontology.
+
+Example Logical Flow:
+
+    Customer A Uses Aircraft:
+
+    scss
+
+uses(CustomerA, AircraftA)
+continuantPartOf(EngineE, AircraftA)
+⇒ operates(CustomerA, EngineE)
+
+Engine E Participates in Engine Run ER:
+
+scss
+
+participatesIn(EngineE, EngineRunER)
+isMeasuredBy(EngineRunER, EngineRunDataERD)
+isMeasuredBy(EngineOperationalConditionEOC, EngineRunDataERD)
+
+Engine Operational Condition Conforms to Design Assumptions:
+
+scss
+
+prescribes(EngineRunDesignAssumptionsERDA, EngineOperationalConditionEOC)
+conformsToDesignAssumptions(EngineOperationalConditionEOC, EngineRunDesignAssumptionsERDA)
+⇒ EngineRunER ∈ ConformingEngineRun
+
+Customer A Classified as Conforming Customer:
+
+scss
+
+    agentIn(CustomerA, FlightF)
+    isMeasuredBy(FlightF, FlightDataFD)
+    isMeasuredBy(FlightOperationalConditionFOC, FlightDataFD)
+    conformsToDesignAssumptions(FlightOperationalConditionFOC, EngineRunDesignAssumptionsERDA)
+    ⇒ CustomerA ∈ ConformingCustomer
+
+Additional Notes:
+
+    Limitation of OWL2 DL:
+        OWL2 DL does not support arithmetic operations or statistical comparisons directly.
+        The comparison of actual mission flight lengths and mission mix percentages with design assumptions must be performed outside the ontology.
+        The results of the comparison (e.g., conformsToDesignAssumptions property values) can be asserted in the ontology.
+
+    Use of SWRL Rules:
+        Semantic Web Rule Language (SWRL) can be used to express rules that involve property comparisons and built-in functions.
+        SWRL rules can be integrated with OWL ontologies to perform more complex reasoning, although they may compromise decidability.
+
+Conclusion:
+
+By defining the necessary classes, properties, and logical axioms, we can formalize the DSQ within the ontology using OWL2 DL. The key is to represent the relationships between Customer A, their operated engines, engine runs, operational conditions, and design assumptions.
+
+While OWL2 DL has limitations in handling numerical computations, we can structure the ontology to accommodate external processing of such data. The conformance assessment can be conducted outside the ontology, and the results (e.g., setting conformsToDesignAssumptions to true or false) can be incorporated back into the ontology for reasoning.
+Formal Logic Summary:
+
+    Classes:
+
+CustomerA ∈ Customer
+ConformingCustomer ⊆ Customer
+EngineE ∈ Engine
+AircraftA ∈ Aircraft
+FlightF ∈ Flight
+EngineRunER ∈ EngineRun
+EngineRunDesignAssumptionsERDA ∈ EngineRunDesignAssumptions
+EngineOperationalConditionEOC ∈ EngineOperationalCondition
+FlightOperationalConditionFOC ∈ FlightOperationalCondition
+ConformingEngineRun ⊆ EngineRun
+
+Object Properties:
+
+scss
+
+uses(CustomerA, AircraftA)
+continuantPartOf(EngineE, AircraftA)
+participatesIn(EngineE, EngineRunER)
+isMeasuredBy(EngineRunER, EngineRunDataERD)
+isMeasuredBy(EngineOperationalConditionEOC, EngineRunDataERD)
+prescribes(EngineRunDesignAssumptionsERDA, EngineOperationalConditionEOC)
+conformsToDesignAssumptions(EngineOperationalConditionEOC, EngineRunDesignAssumptionsERDA)
+agentIn(CustomerA, FlightF)
+isMeasuredBy(FlightF, FlightDataFD)
+isMeasuredBy(FlightOperationalConditionFOC, FlightDataFD)
+conformsToDesignAssumptions(FlightOperationalConditionFOC, EngineRunDesignAssumptionsERDA)
+
+Axioms:
+
+scss
+
+operates(CustomerA, EngineE) ⇐ uses(CustomerA, AircraftA) ∧ continuantPartOf(EngineE, AircraftA)
+
+ConformingEngineRun ≡ EngineRun ∧
+                      (isMeasuredBy some (EngineRunData ∧
+                          (isMeasuredBy some (EngineOperationalCondition ∧
+                              conformsToDesignAssumptions value true))))
+
+ConformingCustomer ≡ Customer ∧
+                     (agentIn some (Flight ∧
+                         (isMeasuredBy some (FlightData ∧
+                             (isMeasuredBy some (FlightOperationalCondition ∧
+                                 conformsToDesignAssumptions value true)))))
+
+If participatesIn(EngineE, EngineRunER) ∧
+   operates(CustomerA, EngineE) ∧
+   EngineRunER ∈ ConformingEngineRun
+Then CustomerA ∈ ConformingCustomer
+
+Goal: Determine if CustomerA ∈ ConformingCustomer.
