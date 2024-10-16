@@ -1,1 +1,138 @@
-py
+2
+1. Definitions of Severe and Benign Usage Patterns
+In the context of engine usage:
+•	Severe Usage Pattern: An engine operation where the operational conditions exceed predefined thresholds, leading to accelerated degradation or increased risk of failure.
+•	Benign Usage Pattern: An engine operation where the operational conditions stay within the acceptable limits defined by design assumptions, resulting in normal wear and tear.
+________________________________________
+2. Mapping Ontology Concepts to Logical Predicates
+Ontology Concepts and Corresponding Predicates
+1.	Classes and Instances
+o	CustomerA: An instance of Customer.
+o	EngineE: Instances of Engine operated by CustomerA.
+o	EngineRunER: Instances of EngineRun involving EngineE.
+o	EngineRunDataERD: Data measuring EngineRunER.
+o	EngineRunDesignAssumptionsERDA: Design assumptions for engine runs.
+o	OperationalParameters: Parameters like MaxN1TrimmedTakeoff, MaxMachCruise.
+2.	Object Properties
+o	uses(Customer, Aircraft): Customer uses Aircraft.
+o	continuantPartOf(Engine, Aircraft): Engine is part of Aircraft.
+o	participatesIn(Engine, EngineRun): Engine participates in EngineRun.
+o	isMeasuredBy(EngineRun, EngineRunData): EngineRun is measured by EngineRunData.
+o	prescribes(DesignAssumptions, OperationalCondition): DesignAssumptions prescribe OperationalCondition.
+o	affects(Customer, EngineOperationalCondition): Customer affects EngineOperationalCondition.
+3.	Data Properties
+o	hasValue(EngineRunData, Parameter, Value): EngineRunData has a Value for a Parameter.
+o	hasThreshold(DesignAssumptions, Parameter, ThresholdValue): DesignAssumptions specify ThresholdValue for Parameter.
+________________________________________
+3. Formal Logical Expressions
+3.1. Defining Severe and Benign Usage
+1.	Severe Usage
+An engine run is classified as severe if any operational parameter exceeds its threshold:
+∀ER[SevereUsage(ER)↔∃ERD,P(isMeasuredBy(ER,ERD)∧hasValue(ERD,P,V)∧hasThreshold(ERDA,P,T)∧V>T)]\forall ER \left[ \text{SevereUsage}(ER) \leftrightarrow \exists ERD, P \left( \text{isMeasuredBy}(ER, ERD) \land \text{hasValue}(ERD, P, V) \land \text{hasThreshold}(ERDA, P, T) \land V > T \right) \right]∀ER[SevereUsage(ER)↔∃ERD,P(isMeasuredBy(ER,ERD)∧hasValue(ERD,P,V)∧hasThreshold(ERDA,P,T)∧V>T)]
+2.	Benign Usage
+An engine run is benign if none of the parameters exceed their thresholds:
+∀ER[BenignUsage(ER)↔¬SevereUsage(ER)]\forall ER \left[ \text{BenignUsage}(ER) \leftrightarrow \neg \text{SevereUsage}(ER) \right]∀ER[BenignUsage(ER)↔¬SevereUsage(ER)]
+3.2. Associating Engine Runs with Customer A
+An engine run is associated with Customer A if the engine involved is operated by Customer A:
+∀ER[EngineRunByCustomerA(ER)↔∃E,AC(participatesIn(E,ER)∧continuantPartOf(E,AC)∧uses(CustomerA,AC))]\forall ER \left[ \text{EngineRunByCustomerA}(ER) \leftrightarrow \exists E, AC \left( \text{participatesIn}(E, ER) \land \text{continuantPartOf}(E, AC) \land \text{uses}(\text{CustomerA}, AC) \right) \right]∀ER[EngineRunByCustomerA(ER)↔∃E,AC(participatesIn(E,ER)∧continuantPartOf(E,AC)∧uses(CustomerA,AC))]
+3.3. Counting and Calculating Percentages
+1.	Total Engine Runs by Customer A
+TotalERA=∣{ER∣EngineRunByCustomerA(ER)}∣\text{TotalER}_{A} = \left| \left\{ ER \mid \text{EngineRunByCustomerA}(ER) \right\} \right|TotalERA=∣{ER∣EngineRunByCustomerA(ER)}∣
+2.	Severe Engine Runs by Customer A
+SevereERA=∣{ER∣EngineRunByCustomerA(ER)∧SevereUsage(ER)}∣\text{SevereER}_{A} = \left| \left\{ ER \mid \text{EngineRunByCustomerA}(ER) \land \text{SevereUsage}(ER) \right\} \right|SevereERA=∣{ER∣EngineRunByCustomerA(ER)∧SevereUsage(ER)}∣
+3.	Benign Engine Runs by Customer A
+BenignERA=∣{ER∣EngineRunByCustomerA(ER)∧BenignUsage(ER)}∣\text{BenignER}_{A} = \left| \left\{ ER \mid \text{EngineRunByCustomerA}(ER) \land \text{BenignUsage}(ER) \right\} \right|BenignERA=∣{ER∣EngineRunByCustomerA(ER)∧BenignUsage(ER)}∣
+4.	Percentage Calculations
+o	Percentage of Severe Usage
+PercentageSevereA=(SevereERATotalERA)×100%\text{PercentageSevere}_{A} = \left( \frac{\text{SevereER}_{A}}{\text{TotalER}_{A}} \right) \times 100\%PercentageSevereA=(TotalERASevereERA)×100%
+o	Percentage of Benign Usage
+PercentageBenignA=(BenignERATotalERA)×100%\text{PercentageBenign}_{A} = \left( \frac{\text{BenignER}_{A}}{\text{TotalER}_{A}} \right) \times 100\%PercentageBenignA=(TotalERABenignERA)×100%
+3.4. Classifying Overall Usage Patterns
+We set a threshold to classify the overall usage pattern. For instance, if more than 20% of the engine runs are severe, we classify the usage pattern as severe.
+1.	Threshold Definition
+Threshold=20%\text{Threshold} = 20\%Threshold=20%
+2.	Overall Usage Pattern Classification
+o	Severe Usage Pattern
+OverallUsagePattern(CustomerA,Severe)↔PercentageSevereA>Threshold\text{OverallUsagePattern}(\text{CustomerA}, \text{Severe}) \leftrightarrow \text{PercentageSevere}_{A} > \text{Threshold}OverallUsagePattern(CustomerA,Severe)↔PercentageSevereA>Threshold
+o	Benign Usage Pattern
+OverallUsagePattern(CustomerA,Benign)↔PercentageSevereA≤Threshold\text{OverallUsagePattern}(\text{CustomerA}, \text{Benign}) \leftrightarrow \text{PercentageSevere}_{A} \leq \text{Threshold}OverallUsagePattern(CustomerA,Benign)↔PercentageSevereA≤Threshold
+3.5. Answering the DSQ
+To answer whether Customer A's usage patterns are severe or benign:
+UsagePatternClassification(CustomerA)={Severe,if OverallUsagePattern(CustomerA,Severe)Benign,if OverallUsagePattern(CustomerA,Benign)\text{UsagePatternClassification}(\text{CustomerA}) = \begin{cases} \text{Severe}, & \text{if } \text{OverallUsagePattern}(\text{CustomerA}, \text{Severe}) \\ \text{Benign}, & \text{if } \text{OverallUsagePattern}(\text{CustomerA}, \text{Benign}) \end{cases}UsagePatternClassification(CustomerA)={Severe,Benign,if OverallUsagePattern(CustomerA,Severe)if OverallUsagePattern(CustomerA,Benign)
+________________________________________
+4. Detailed Logical Steps
+4.1. Identifying Engine Runs by Customer A
+•	Predicate Definition:
+EngineRunByCustomerA(ER)\text{EngineRunByCustomerA}(ER)EngineRunByCustomerA(ER)
+•	Logical Expression:
+∃E,AC(participatesIn(E,ER)∧continuantPartOf(E,AC)∧uses(CustomerA,AC))\exists E, AC \left( \text{participatesIn}(E, ER) \land \text{continuantPartOf}(E, AC) \land \text{uses}(\text{CustomerA}, AC) \right)∃E,AC(participatesIn(E,ER)∧continuantPartOf(E,AC)∧uses(CustomerA,AC))
+4.2. Determining Severe Usage
+•	For Each Operational Parameter P:
+o	Retrieve Value V from Engine Run Data:
+hasValue(ERD,P,V)\text{hasValue}(ERD, P, V)hasValue(ERD,P,V)
+o	Retrieve Threshold T from Design Assumptions:
+hasThreshold(ERDA,P,T)\text{hasThreshold}(ERDA, P, T)hasThreshold(ERDA,P,T)
+o	Compare Value with Threshold:
+V>TV > TV>T
+•	Severe Usage Predicate:
+SevereUsage(ER)\text{SevereUsage}(ER)SevereUsage(ER)
+•	Logical Expression:
+∃ERD,P(isMeasuredBy(ER,ERD)∧hasValue(ERD,P,V)∧hasThreshold(ERDA,P,T)∧V>T)\exists ERD, P \left( \text{isMeasuredBy}(ER, ERD) \land \text{hasValue}(ERD, P, V) \land \text{hasThreshold}(ERDA, P, T) \land V > T \right)∃ERD,P(isMeasuredBy(ER,ERD)∧hasValue(ERD,P,V)∧hasThreshold(ERDA,P,T)∧V>T)
+4.3. Classifying Each Engine Run
+•	An Engine Run is Severe if any Parameter Exceeds Threshold:
+SevereUsage(ER)→EngineRunClassification(ER)=Severe\text{SevereUsage}(ER) \rightarrow \text{EngineRunClassification}(ER) = \text{Severe}SevereUsage(ER)→EngineRunClassification(ER)=Severe
+•	An Engine Run is Benign if No Parameters Exceed Threshold:
+¬SevereUsage(ER)→EngineRunClassification(ER)=Benign\neg \text{SevereUsage}(ER) \rightarrow \text{EngineRunClassification}(ER) = \text{Benign}¬SevereUsage(ER)→EngineRunClassification(ER)=Benign
+4.4. Calculating Percentages
+•	Total Number of Engine Runs:
+TotalERA\text{TotalER}_{A}TotalERA
+•	Number of Severe Engine Runs:
+SevereERA\text{SevereER}_{A}SevereERA
+•	Percentage Calculation:
+PercentageSevereA=(SevereERATotalERA)×100%\text{PercentageSevere}_{A} = \left( \frac{\text{SevereER}_{A}}{\text{TotalER}_{A}} \right) \times 100\%PercentageSevereA=(TotalERASevereERA)×100%
+4.5. Final Classification
+•	If PercentageSevere > Threshold:
+UsagePatternClassification(CustomerA)=Severe\text{UsagePatternClassification}(\text{CustomerA}) = \text{Severe}UsagePatternClassification(CustomerA)=Severe
+•	Else:
+UsagePatternClassification(CustomerA)=Benign\text{UsagePatternClassification}(\text{CustomerA}) = \text{Benign}UsagePatternClassification(CustomerA)=Benign
+________________________________________
+5. Application to Ontology Model
+Using the aspects of the model you provided, the logical expressions can be integrated into your ontology as follows:
+•	Define Severe and Benign Usage Patterns as Subclasses:
+o	SevereEngineRun subclass of EngineRun.
+o	BenignEngineRun subclass of EngineRun.
+•	Use Object Properties to Relate Classes:
+o	EngineRun isMeasuredBy EngineRunData.
+o	EngineRunData hasValue OperationalParameter with Value.
+o	EngineRunDesignAssumptions prescribes OperationalCondition.
+•	Use Data Properties for Thresholds and Values:
+o	OperationalParameter has ThresholdValue.
+o	EngineRunData records ParameterValue.
+•	Create Rules in Ontology:
+o	Rule for Severe Usage:
+If an EngineRunData has a ParameterValue exceeding the ThresholdValue prescribed by EngineRunDesignAssumptions, then classify the EngineRun as SevereEngineRun.
+o	Rule for Benign Usage:
+If all ParameterValues are within ThresholdValues, classify the EngineRun as BenignEngineRun.
+________________________________________
+6. Example in First-Order Logic Syntax
+Assuming the following predicates:
+•	Uses(c,a)\text{Uses}(c, a)Uses(c,a): Customer ccc uses Aircraft aaa.
+•	PartOf(e,a)\text{PartOf}(e, a)PartOf(e,a): Engine eee is part of Aircraft aaa.
+•	ParticipatesIn(e,er)\text{ParticipatesIn}(e, er)ParticipatesIn(e,er): Engine eee participates in Engine Run ererer.
+•	MeasuredBy(er,erd)\text{MeasuredBy}(er, erd)MeasuredBy(er,erd): Engine Run ererer is measured by Engine Run Data erderderd.
+•	HasValue(erd,p,v)\text{HasValue}(erd, p, v)HasValue(erd,p,v): Engine Run Data erderderd has value vvv for parameter ppp.
+•	HasThreshold(erda,p,t)\text{HasThreshold}(erda, p, t)HasThreshold(erda,p,t): Design Assumptions erdaerdaerda prescribe threshold ttt for parameter ppp.
+Severe Usage Definition:
+∀er(SevereUsage(er)↔∃erd,p,v,t(MeasuredBy(er,erd)∧HasValue(erd,p,v)∧HasThreshold(erda,p,t)∧v>t))\forall er \left( \text{SevereUsage}(er) \leftrightarrow \exists erd, p, v, t \left( \text{MeasuredBy}(er, erd) \land \text{HasValue}(erd, p, v) \land \text{HasThreshold}(erda, p, t) \land v > t \right) \right)∀er(SevereUsage(er)↔∃erd,p,v,t(MeasuredBy(er,erd)∧HasValue(erd,p,v)∧HasThreshold(erda,p,t)∧v>t))
+Engine Run by Customer A:
+∀er(EngineRunByCustomerA(er)↔∃e,a(ParticipatesIn(e,er)∧PartOf(e,a)∧Uses(CustomerA,a)))\forall er \left( \text{EngineRunByCustomerA}(er) \leftrightarrow \exists e, a \left( \text{ParticipatesIn}(e, er) \land \text{PartOf}(e, a) \land \text{Uses}(\text{CustomerA}, a) \right) \right)∀er(EngineRunByCustomerA(er)↔∃e,a(ParticipatesIn(e,er)∧PartOf(e,a)∧Uses(CustomerA,a)))
+Total Engine Runs:
+TotalERA=∣{er∣EngineRunByCustomerA(er)}∣\text{TotalER}_{A} = \left| \left\{ er \mid \text{EngineRunByCustomerA}(er) \right\} \right|TotalERA=∣{er∣EngineRunByCustomerA(er)}∣
+Severe Engine Runs:
+SevereERA=∣{er∣EngineRunByCustomerA(er)∧SevereUsage(er)}∣\text{SevereER}_{A} = \left| \left\{ er \mid \text{EngineRunByCustomerA}(er) \land \text{SevereUsage}(er) \right\} \right|SevereERA=∣{er∣EngineRunByCustomerA(er)∧SevereUsage(er)}∣
+________________________________________
+7. Conclusion
+By applying these logical expressions and integrating them into your ontology, you can systematically determine whether Customer A's engine usage patterns are classified as severe or benign based on the operational data compared to the design assumptions.
+•	If the majority of engine runs are severe, then Customer A's usage pattern is classified as severe.
+•	If the majority are benign, then the usage pattern is benign.
+
