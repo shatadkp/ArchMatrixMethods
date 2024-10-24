@@ -139,6 +139,29 @@ THEN {
 
 
 
+======================
+
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?engineOperationID ?aircraftID
+WHERE {
+  # Retrieve engine operations with the inferred relationship
+  ?engineOperation :operation_of_aircraft ?aircraft .
+
+  # Get engine operation identifiers
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+
+  # Get aircraft identifiers
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+}
+ORDER BY ?engineOperationID
+
+
 
 
 
