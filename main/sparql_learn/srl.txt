@@ -124,6 +124,24 @@ WHERE {
 
 
 
+======================SRL
+
+@prefix : <http://api.stardog.com/> .
+
+RULE operationOfAircraftRule
+IF {
+  ?engineOperation :participates_in ?engine .
+  ?aircraft :has_continuant_part ?engine .
+}
+THEN {
+  ?engineOperation :operation_of_aircraft ?aircraft .
+}
+
+
+
+
+
+
 
 
 
