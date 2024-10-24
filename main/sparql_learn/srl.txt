@@ -1,0 +1,20 @@
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+CONSTRUCT {
+  ?engineOperation :belongsToAircraft ?aircraftID .
+  ?engineOperation :hasEngineOperationID ?engineOperationID .
+}
+WHERE {
+  # Inference logic: Engine operation belongs to aircraft if engine is part of the aircraft
+  ?engine :participates_in ?engineOperation .
+  ?aircraft :has_continuant_part ?engine .
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+
+  # Include the engine operation ID (text form)
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+}
