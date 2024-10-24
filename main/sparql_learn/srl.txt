@@ -162,6 +162,49 @@ WHERE {
 ORDER BY ?engineOperationID
 
 
+999999999999999999
+
+@prefix : <http://api.stardog.com/> .
+
+RULE operationOfAircraftRule
+IF {
+  ?engineOperation :participates_in ?engine .
+  ?aircraft :has_continuant_part ?engine .
+}
+THEN {
+  ?engineOperation :operation_of_aircraft ?aircraft .
+}
+
+
+
+999999999999999999999
+
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?engineOperationID ?aircraftID
+WHERE {
+  # Input parameter: Engine Operation ID
+  BIND("EO-20240415-042" AS ?inputEngineOpID)
+
+  # Retrieve engine operation with the specified ID
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+  FILTER(?engineOperationID = ?inputEngineOpID)
+  
+  # Use the inferred relationship
+  ?engineOperation :operation_of_aircraft ?aircraft .
+
+  # Get aircraft identifier
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+}
+
+
+
+
 
 
 
