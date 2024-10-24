@@ -61,5 +61,72 @@ WHERE {
 
 
 ==================================
+==================================KO
+
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?engineOperationID ?aircraftID
+WHERE {
+  # Input parameter: Engine Operation ID
+  BIND("EO-20240415-042" AS ?inputEngineOpID)
+  
+  # Get the engine operation
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+  FILTER(?engineOperationID = ?inputEngineOpID)
+  
+  # Get the engine participating in the engine operation
+  ?engine :participates_in ?engineOperation .
+  
+  # Get the aircraft that has the engine as a continuant part
+  ?aircraft :has_continuant_part ?engine .
+  
+  # Get the aircraft ID
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+}
+
+
+
+============0000000000000000000000000000000
+
+turtle rule
+
+:CompliantOperation rdf:type owl:Class ;
+  owl:equivalentClass [
+    rdf:type owl:Restriction ;
+    owl:onProperty :hasActualTime ;
+    owl:allValuesFrom [
+      rdf:type rdfs:Datatype ;
+      owl:onDatatype xsd:integer ;
+      owl:withRestrictions (
+        [ xsd:maxInclusive "12000"^^xsd:integer ]
+      )
+    ]
+  ] .
+
+
+===========
+
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?engineOperationID
+WHERE {
+  ?engineOperation rdf:type :CompliantOperation .
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+}
+
+
+
+
+
+
+
 
 
