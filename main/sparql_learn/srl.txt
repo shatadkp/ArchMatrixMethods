@@ -204,6 +204,35 @@ WHERE {
 
 
 
+666666666666666
+
+PREFIX : <http://api.stardog.com/>
+
+IF {
+    ?engine :participates_in ?engineOperation .
+    ?aircraft :has_continuant_part ?engine .
+}
+THEN {
+    ?engineOperation :involvesAircraft ?aircraft .
+}
+
+
+
+666666666666666666666
+
+
+PREFIX : <http://api.stardog.com/>
+
+SELECT ?engineOperation ?aircraftID
+WHERE {
+  ?engineOperation :involvesAircraft ?aircraft .
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+}
+
+
+
 
 
 
