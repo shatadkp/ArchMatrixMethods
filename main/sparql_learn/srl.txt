@@ -18,3 +18,48 @@ WHERE {
   ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
   ?engineOpIBE :has_text_value ?engineOperationID .
 }
+
+
+
+==========
+
+PREFIX : <http://api.stardog.com/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+INSERT {
+  ?engineOperation :belongsToAircraft ?aircraftID .
+  ?engineOperation :hasEngineOperationID ?engineOperationID .
+}
+WHERE {
+  # Same inference logic
+  ?engine :participates_in ?engineOperation .
+  ?aircraft :has_continuant_part ?engine .
+  ?artifactIdentifierAircraft :designates ?aircraft .
+  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
+  ?aircraftIBE :has_text_value ?aircraftID .
+
+  # Include the engine operation ID (text form)
+  ?designativeInformationEngineOp :designates ?engineOperation .
+  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
+  ?engineOpIBE :has_text_value ?engineOperationID .
+}
+
+
+
+==================================
+
+
+
+PREFIX : <http://api.stardog.com/>
+
+SELECT ?engineOperationID ?aircraftID
+WHERE {
+  ?engineOperation :belongsToAircraft ?aircraftID .
+  ?engineOperation :hasEngineOperationID ?engineOperationID .
+}
+
+
+
+==================================
+
+
