@@ -1,245 +1,48 @@
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-CONSTRUCT {
-  ?engineOperation :belongsToAircraft ?aircraftID .
-  ?engineOperation :hasEngineOperationID ?engineOperationID .
-}
-WHERE {
-  # Inference logic: Engine operation belongs to aircraft if engine is part of the aircraft
-  ?engine :participates_in ?engineOperation .
-  ?aircraft :has_continuant_part ?engine .
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-
-  # Include the engine operation ID (text form)
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-}
-
-
-
-==========
-
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-INSERT {
-  ?engineOperation :belongsToAircraft ?aircraftID .
-  ?engineOperation :hasEngineOperationID ?engineOperationID .
-}
-WHERE {
-  # Same inference logic
-  ?engine :participates_in ?engineOperation .
-  ?aircraft :has_continuant_part ?engine .
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-
-  # Include the engine operation ID (text form)
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-}
-
-
-
-==================================
-
-
-
-PREFIX : <http://api.stardog.com/>
-
-SELECT ?engineOperationID ?aircraftID
-WHERE {
-  ?engineOperation :belongsToAircraft ?aircraftID .
-  ?engineOperation :hasEngineOperationID ?engineOperationID .
-}
-
-
-
-==================================
-==================================KO
-
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-SELECT ?engineOperationID ?aircraftID
-WHERE {
-  # Input parameter: Engine Operation ID
-  BIND("EO-20240415-042" AS ?inputEngineOpID)
-  
-  # Get the engine operation
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-  FILTER(?engineOperationID = ?inputEngineOpID)
-  
-  # Get the engine participating in the engine operation
-  ?engine :participates_in ?engineOperation .
-  
-  # Get the aircraft that has the engine as a continuant part
-  ?aircraft :has_continuant_part ?engine .
-  
-  # Get the aircraft ID
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-}
-
-
-
-============0000000000000000000000000000000
-
-turtle rule
-
-:CompliantOperation rdf:type owl:Class ;
-  owl:equivalentClass [
-    rdf:type owl:Restriction ;
-    owl:onProperty :hasActualTime ;
-    owl:allValuesFrom [
-      rdf:type rdfs:Datatype ;
-      owl:onDatatype xsd:integer ;
-      owl:withRestrictions (
-        [ xsd:maxInclusive "12000"^^xsd:integer ]
-      )
-    ]
-  ] .
-
-
-===========
-
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-SELECT ?engineOperationID
-WHERE {
-  ?engineOperation rdf:type :CompliantOperation .
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-}
-
-
-
-======================SRL
-
-@prefix : <http://api.stardog.com/> .
-
-RULE operationOfAircraftRule
-IF {
-  ?engineOperation :participates_in ?engine .
-  ?aircraft :has_continuant_part ?engine .
-}
-THEN {
-  ?engineOperation :operation_of_aircraft ?aircraft .
-}
-
-
-
-======================
-
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-SELECT ?engineOperationID ?aircraftID
-WHERE {
-  # Retrieve engine operations with the inferred relationship
-  ?engineOperation :operation_of_aircraft ?aircraft .
-
-  # Get engine operation identifiers
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-
-  # Get aircraft identifiers
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-}
-ORDER BY ?engineOperationID
-
-
-999999999999999999
-
-@prefix : <http://api.stardog.com/> .
-
-RULE operationOfAircraftRule
-IF {
-  ?engineOperation :participates_in ?engine .
-  ?aircraft :has_continuant_part ?engine .
-}
-THEN {
-  ?engineOperation :operation_of_aircraft ?aircraft .
-}
-
-
-
-999999999999999999999
-
-PREFIX : <http://api.stardog.com/>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-SELECT ?engineOperationID ?aircraftID
-WHERE {
-  # Input parameter: Engine Operation ID
-  BIND("EO-20240415-042" AS ?inputEngineOpID)
-
-  # Retrieve engine operation with the specified ID
-  ?designativeInformationEngineOp :designates ?engineOperation .
-  ?designativeInformationEngineOp :generically_depends_on ?engineOpIBE .
-  ?engineOpIBE :has_text_value ?engineOperationID .
-  FILTER(?engineOperationID = ?inputEngineOpID)
-  
-  # Use the inferred relationship
-  ?engineOperation :operation_of_aircraft ?aircraft .
-
-  # Get aircraft identifier
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-}
-
-
-
-666666666666666
-
-PREFIX : <http://api.stardog.com/>
-
-IF {
-    ?engine :participates_in ?engineOperation .
-    ?aircraft :has_continuant_part ?engine .
-}
-THEN {
-    ?engineOperation :involvesAircraft ?aircraft .
-}
-
-
-
-666666666666666666666
-
-
-PREFIX : <http://api.stardog.com/>
-
-SELECT ?engineOperation ?aircraftID
-WHERE {
-  ?engineOperation :involvesAircraft ?aircraft .
-  ?artifactIdentifierAircraft :designates ?aircraft .
-  ?artifactIdentifierAircraft :generically_depends_on ?aircraftIBE .
-  ?aircraftIBE :has_text_value ?aircraftID .
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
+import pandas as pd
+from collections import Counter
+import argparse
+import sys
+
+def analyze_csv(file_path):
+    try:
+        # Read the CSV file into a pandas DataFrame
+        df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+        sys.exit(1)
+    except pd.errors.EmptyDataError:
+        print(f"Error: The file '{file_path}' is empty.")
+        sys.exit(1)
+    except pd.errors.ParserError:
+        print(f"Error: The file '{file_path}' does not appear to be in CSV format.")
+        sys.exit(1)
+    
+    # Iterate through each column
+    for column in df.columns:
+        print(f"\nColumn: '{column}'")
+        # Drop NaN values for analysis
+        column_data = df[column].dropna()
+        total_values = len(column_data)
+        unique_values = column_data.unique()
+        num_unique = len(unique_values)
+        
+        if num_unique == total_values:
+            print("  All values are unique.")
+        else:
+            print("  Repeated values:")
+            # Count occurrences using Counter
+            counts = Counter(column_data)
+            # Filter out values that occur only once
+            repeated = {k: v for k, v in counts.items() if v > 1}
+            for value, count in repeated.items():
+                print(f"    {value}: {count} times")
+
+def main():
+    parser = argparse.ArgumentParser(description="Analyze CSV columns for unique and repeated values.")
+    parser.add_argument('csv_file', help='Path to the CSV file to analyze.')
+    
+    args = parser.parse_args()
+    analyze_csv(args.csv_file)
+
+if __name__ == "__main__":
+    main()
