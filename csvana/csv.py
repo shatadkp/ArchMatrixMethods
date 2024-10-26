@@ -6,7 +6,8 @@ import sys
 def analyze_csv(file_path, output_path):
     try:
         # Read the CSV file into a pandas DataFrame
-        df = pd.read_csv(file_path)
+        # Convert all columns to string to handle mixed types
+        df = pd.read_csv(file_path, dtype=str)
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
         sys.exit(1)
@@ -51,4 +52,4 @@ def main():
     analyze_csv(args.csv_file, args.output)
 
 if __name__ == "__main__":
-        main()
+    main()
